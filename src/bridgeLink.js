@@ -1,7 +1,7 @@
 import { GraphQLSchema, graphql, print } from 'graphql';
-import { addMockFunctionsToSchema, makeExecutableSchema } from 'graphql-tools';
-
-import { ApolloLink } from 'apollo-link';
+import { makeExecutableSchema } from '@graphql-tools/schema';
+import { addMocksToSchema } from '@graphql-tools/mock';
+import { ApolloLink } from '@apollo/client/link/core';
 import Observable from 'zen-observable';
 
 export const createBridgeLink = ({ schema, resolvers, mock }) => {
@@ -22,7 +22,7 @@ export const createBridgeLink = ({ schema, resolvers, mock }) => {
   }
 
   if (mock)
-    addMockFunctionsToSchema({
+    addMocksToSchema({
       schema: executableSchema,
       preserveResolvers: true,
     });
@@ -30,14 +30,13 @@ export const createBridgeLink = ({ schema, resolvers, mock }) => {
   return new ApolloLink(
     operation =>
       new Observable(observer => {
-        graphql(
-          executableSchema,
-          print(operation.query),
-          undefined,
-          operation.getContext(),
-          operation.variables,
-          operation.operationName
-        )
+        graphql({
+          schema: executableSchema,
+          source: print(operation.query),
+          contextValue: operation.getContext(),
+          variableValues: operation.variables,
+          operationName: operation.operationName,
+        })
           .then(data => {
             observer.next(data);
             observer.complete();
